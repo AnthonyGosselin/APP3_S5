@@ -71,8 +71,54 @@ def fourier_spectra(audioSample, normalized=False, in_dB = False, showPhase=Fals
         plt.title('Spectre phase')
 
 
+def filtreFIR(audioSample, normalized=False):
+    wc = np.pi / 1000
+    Fe = audioSample.Fe
+    N = audioSample.N
+
+    w_norm = 2 * np.pi / N
+
+    fc = wc * Fe / (2 * np.pi)
+
+    m = Fe * N / Fe
+    k = 2 * m + 1
+
+    n = np.arange(0, w_norm * N, w_norm) if normalized else np.arange(0, N, 1)
+
+    signalRedressé = np.abs(audioSample.data)
+
+    FIRpb = np.zeros(N)
+
+    index = 0
+    for nval in n:
+        if index == 0:
+            FIRpb[index] = k / N
+            #if num == 'c1' or num == 'c2':
+            #    hwindow[index] = k / N * window[index]
+        else:
+            FIRpb[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N))
+            #if num == 'c1' or num == 'c2':
+            #    hwindow[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N)) * window[index]
+        index += 1
+
+
+
+
+    plt.figure()
+    plt.subplot(3, 1, 1)
+    plt.title("Signal redressé")
+    plt.plot(signalRedressé)
+    plt.subplot(3,1,2)
+
+
+
+
+
+
 guitarSample = load_audio('./audio/note_guitare_LAd.wav')
 guitarSample_down = down_sample(guitarSample, 160000, plot=True)
 fourier_spectra(guitarSample, normalized=True, in_dB=False, showPhase=False)
+
+filtreFIR(guitarSample, normalized=True)
 
 plt.show()
