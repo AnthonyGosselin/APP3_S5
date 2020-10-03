@@ -32,14 +32,47 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
     dn = (end_time - start_time) / N2
     n = np.arange(start_time, end_time, dn)
 
+    newFe = audioSample.Fe*(samples/audioSample.N)
+    print(newFe)
+
     if plot:
         plt.figure(1)
         plt.plot(n, down_sample_data)
         plt.title('LA# (N: ' + str(N2) + '), time: ' + str(start_time) + 's - ' + str(end_time) + 's')
-        plt.show()
 
-    return down_sample_data
+    return AudioSample(newFe, down_sample_data)
+
+
+def fourier_spectra(audioSample, normalized=False, in_dB = False, showPhase=False):
+    dft = np.fft.fft(audioSample.data)
+
+    w_norm = 2 * np.pi / audioSample.N
+    n = np.arange(0, w_norm*audioSample.N, w_norm) if normalized else np.arange(0, audioSample.N, 1)
+
+    # Compute amplitude
+    amp = np.abs(dft)
+    if in_dB:
+        amp = 20 * np.log10(amp)
+
+    # Show amplitude (amp)
+    plt.figure(2)
+    if showPhase:
+        plt.subplot(2, 1, 1)
+    plt.plot(n, amp, 'g')
+    plt.title('Spectre amplitude')
+
+    if in_dB:
+        plt.ylabel('Amplitude (dB)')
+
+    # Show phase
+    if showPhase:
+        plt.subplot(2, 1, 2)
+        plt.plot(n, np.angle(dft), 'g')
+        plt.title('Spectre phase')
 
 
 guitarSample = load_audio('./audio/note_guitare_LAd.wav')
-down_sample(guitarSample)
+guitarSample_down = down_sample(guitarSample, 160000, plot=True)
+fourier_spectra(guitarSample, normalized=True, in_dB=False, showPhase=False)
+
+plt.show()
