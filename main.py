@@ -98,6 +98,10 @@ def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printRe
         harmonic_phase = phase_data[harmonic_m]
         if printResults:
             print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {harmonic_amp:.3f} | Phase = {harmonic_phase:.4f}')
+
+    return harmonic_amp, harmonic_phase
+
+
 def filtreFIR(audioSample, normalized=False):
     wc = np.pi / 1000
     Fe = audioSample.Fe
@@ -128,25 +132,27 @@ def filtreFIR(audioSample, normalized=False):
             #    hwindow[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N)) * window[index]
         index += 1
 
-
-
-
     plt.figure()
+    # Signal redressé
     plt.subplot(3, 1, 1)
     plt.title("Signal redressé")
     plt.plot(signalRedressé)
+
+    # Réponse du filtre
     plt.subplot(3,1,2)
+    plt.title("Filtre passe-bas")
+    plt.plot(FIRpb)
+
+    # Filtre * signal
+    filteredSignal = signalRedressé * FIRpb
+    plt.subplot(3,1,3)
+    plt.title("Signal redressé avec filtre passe-bas")
+    plt.plot(filteredSignal)
 
 
 
 
 
-
-guitarSample = load_audio('./audio/note_guitare_LAd.wav')
-guitarSample_down = down_sample(guitarSample, 160000, plot=True)
-fourier_spectra(guitarSample, normalized=True, in_dB=False, showPhase=False)
-
-    return harmonic_amp, harmonic_phase
 
 sample = load_audio('./audio/note_guitare_LAd.wav')
 sampleample_down = down_sample(sample, 160000, plot=True)
@@ -155,9 +161,7 @@ amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=True,
 harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=True)
 
 
-
-
-filtreFIR(guitarSample, normalized=True)
+filtreFIR(sample, normalized=True)
 
 plt.show()
 
