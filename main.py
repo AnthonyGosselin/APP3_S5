@@ -43,26 +43,47 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
     return AudioSample(newFe, down_sample_data)
 
 
-def fourier_spectra(audioSample, normalized=False, in_dB = False, showPhase=False):
-    dft = np.fft.fft(audioSample.data)
+def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = False, showPhase=False, start_m=0, end_m=None):
+    end_m = not end_m and audioSample.N or end_m
 
+    # X axis
     w_norm = 2 * np.pi / audioSample.N
-    n = np.arange(0, w_norm*audioSample.N, w_norm) if normalized else np.arange(0, audioSample.N, 1)
+    n = None
+    if x_normalized:
+        n = np.arange(w_norm*start_m, w_norm*end_m, w_norm)
+    elif x_Freq:
+        step = audioSample.Fe/audioSample.N
+        n = np.arange(start_m*step, end_m*step, step)
+    else:
+        n = np.arange(start_m, end_m, 1) # m
 
     # Compute amplitude
+    dft = np.fft.fft(audioSample.data)
     amp = np.abs(dft)
-    if in_dB:
+    if y_dB:
         amp = 20 * np.log10(amp)
 
     # Show amplitude (amp)
     plt.figure(2)
     if showPhase:
         plt.subplot(2, 1, 1)
-    plt.plot(n, amp, 'g')
+    plt.plot(n, amp[start_m:end_m], 'g')
     plt.title('Spectre amplitude')
 
-    if in_dB:
+    print(np.where(amp>10000000))
+
+    # Name axis
+    if y_dB:
         plt.ylabel('Amplitude (dB)')
+    else:
+        plt.ylabel('Amplitude')
+
+    if x_normalized:
+        plt.xlabel('Freq norm (Rad/echantillon)')
+    elif x_Freq:
+        plt.xlabel('Freq (Hz)')
+    else:
+        plt.xlabel('m')
 
     # Show phase
     if showPhase:
@@ -72,7 +93,7 @@ def fourier_spectra(audioSample, normalized=False, in_dB = False, showPhase=Fals
 
 
 guitarSample = load_audio('./audio/note_guitare_LAd.wav')
-guitarSample_down = down_sample(guitarSample, 160000, plot=True)
-fourier_spectra(guitarSample, normalized=True, in_dB=False, showPhase=False)
+guitarSample_down = down_sample(guitarSample, 600, plot=True)
+fourier_spectra(guitarSample, x_normalized=False, x_Freq=True, y_dB=True, showPhase=False, start_m=5000, end_m=11000)
 
 plt.show()
