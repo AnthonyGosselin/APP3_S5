@@ -33,7 +33,6 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
     n = np.arange(start_time, end_time, dn)
 
     newFe = audioSample.Fe*(samples/audioSample.N)
-    print(newFe)
 
     if plot:
         plt.figure(1)
@@ -42,13 +41,12 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
 
     return AudioSample(newFe, down_sample_data)
 
-
+# Return FULL amplitude and phase (not just for the specified intervals)
 def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = False, showPhase=False, start_m=0, end_m=None):
     end_m = not end_m and audioSample.N or end_m
 
     # X axis
     w_norm = 2 * np.pi / audioSample.N
-    n = None
     if x_normalized:
         n = np.arange(w_norm*start_m, w_norm*end_m, w_norm)
     elif x_Freq:
@@ -70,8 +68,6 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
     plt.plot(n, amp[start_m:end_m], 'g')
     plt.title('Spectre amplitude')
 
-    print(np.where(amp>10000000))
-
     # Name axis
     if y_dB:
         plt.ylabel('Amplitude (dB)')
@@ -86,14 +82,42 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
         plt.xlabel('m')
 
     # Show phase
+    phase = np.angle(dft)
     if showPhase:
         plt.subplot(2, 1, 2)
-        plt.plot(n, np.angle(dft), 'g')
+        plt.plot(n, phase, 'g')
         plt.title('Spectre phase')
 
+    return amp, phase
 
-guitarSample = load_audio('./audio/note_guitare_LAd.wav')
-guitarSample_down = down_sample(guitarSample, 600, plot=True)
-fourier_spectra(guitarSample, x_normalized=False, x_Freq=True, y_dB=True, showPhase=False, start_m=5000, end_m=11000)
+def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printResults=True):
+    for i in range(1, num_harmonics+1):
+        harmonic_freq = f0 * i
+        harmonic_m = round(harmonic_freq * sample.N / sample.Fe)
+        harmonic_amp = amp_data[harmonic_m]
+        harmonic_phase = phase_data[harmonic_m]
+        if printResults:
+            print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {harmonic_amp:.3f} | Phase = {harmonic_phase:.4f}')
+
+    return harmonic_amp, harmonic_phase
+
+sample = load_audio('./audio/note_guitare_LAd.wav')
+sampleample_down = down_sample(sample, 160000, plot=True)
+amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=True, showPhase=False)
+
+harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=True)
+
+
+
 
 plt.show()
+
+
+
+
+
+
+
+
+
+
