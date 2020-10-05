@@ -109,6 +109,54 @@ def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printRe
     return harmonic_amp, harmonic_phase
 
 
+def filtreFIR(audioSample, normalized=False):
+    wc = np.pi / 1000
+    Fe = audioSample.Fe
+    N = audioSample.N
+
+    w_norm = 2 * np.pi / N
+
+    fc = wc * Fe / (2 * np.pi)
+
+    m = Fe * N / Fe
+    k = 2 * m + 1
+
+    n = np.arange(0, w_norm * N, w_norm) if normalized else np.arange(0, N, 1)
+
+    signalRedressé = np.abs(audioSample.data)
+
+    FIRpb = np.zeros(N)
+
+    index = 0
+    for nval in n:
+        if index == 0:
+            FIRpb[index] = k / N
+            #if num == 'c1' or num == 'c2':
+            #    hwindow[index] = k / N * window[index]
+        else:
+            FIRpb[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N))
+            #if num == 'c1' or num == 'c2':
+            #    hwindow[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N)) * window[index]
+        index += 1
+
+    plt.figure()
+    # Signal redressé
+    plt.subplot(3, 1, 1)
+    plt.title("Signal redressé")
+    plt.plot(signalRedressé)
+
+    # Réponse du filtre
+    plt.subplot(3,1,2)
+    plt.title("Filtre passe-bas")
+    plt.plot(FIRpb)
+
+    # Filtre * signal
+    filteredSignal = signalRedressé * FIRpb
+    plt.subplot(3,1,3)
+    plt.title("Signal redressé avec filtre passe-bas")
+    plt.plot(filteredSignal)
+
+
 def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
 
     dn = original_audio.total_time / original_audio.N
@@ -141,7 +189,7 @@ def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count
     wavfile.write('./audio/out_audio.wav', original_audio.Fe, np.round(synth_signal))
 
 
-
+###########################################################################################
 
 sample = load_audio(guitarFile)
 sample_down = down_sample(sample, plot=True)#, start_time=0.17, end_time=0.18)
@@ -149,6 +197,8 @@ amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False
 
 harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
 #sample_synthesis(466, harm_amp, harm_phase, sample)
+
+filtreFIR(sample, normalized=True)
 
 
 plt.show()
