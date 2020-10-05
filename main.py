@@ -3,6 +3,9 @@ import numpy as np
 from scipy.io import wavfile
 from scipy import signal
 
+guitarFile = './audio/note_guitare_LAd.wav'
+bassonFile = './audio/note_basson_plus_sinus_1000_Hz.wav'
+
 
 class AudioSample:
     def __init__(self, Fe, data):
@@ -28,6 +31,8 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
     start_ind = int(start_time*audioSample.Fe)
     end_ind = int(end_time*audioSample.Fe)
 
+    print(N2)
+
     down_sample_data = signal.resample(audioSample.data[start_ind:end_ind], N2)
     dn = (end_time - start_time) / N2
     n = np.arange(start_time, end_time, dn)
@@ -36,7 +41,7 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
 
     if plot:
         plt.figure(1)
-        plt.plot(n, down_sample_data)
+        plt.plot(n, down_sample_data*np.hanning(N2))
         plt.title('LA# (N: ' + str(N2) + '), time: ' + str(start_time) + 's - ' + str(end_time) + 's')
 
     return AudioSample(newFe, down_sample_data)
@@ -48,12 +53,12 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
     # X axis
     w_norm = 2 * np.pi / audioSample.N
     if x_normalized:
-        n = np.arange(w_norm*start_m, w_norm*end_m, w_norm)
+        m = np.arange(w_norm*start_m, w_norm*end_m, w_norm)
     elif x_Freq:
         step = audioSample.Fe/audioSample.N
-        n = np.arange(start_m*step, end_m*step, step)
+        m = np.arange(start_m*step, end_m*step, step)
     else:
-        n = np.arange(start_m, end_m, 1) # m
+        m = np.arange(start_m, end_m, 1) # m
 
     # Compute amplitude
     dft = np.fft.fft(audioSample.data)
@@ -65,7 +70,7 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
     plt.figure(2)
     if showPhase:
         plt.subplot(2, 1, 1)
-    plt.plot(n, amp[start_m:end_m], 'g')
+    plt.plot(m, amp[start_m:end_m], 'g')#, use_line_collection=True)
     plt.title('Spectre amplitude')
 
     # Name axis
@@ -85,29 +90,65 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
     phase = np.angle(dft)
     if showPhase:
         plt.subplot(2, 1, 2)
-        plt.plot(n, phase, 'g')
+        plt.plot(m, phase, 'g')
         plt.title('Spectre phase')
 
     return amp, phase
 
 def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printResults=True):
+    harmonic_amp = []
+    harmonic_phase = []
     for i in range(1, num_harmonics+1):
         harmonic_freq = f0 * i
         harmonic_m = round(harmonic_freq * sample.N / sample.Fe)
-        harmonic_amp = amp_data[harmonic_m]
-        harmonic_phase = phase_data[harmonic_m]
+        harmonic_amp.append(amp_data[harmonic_m])
+        harmonic_phase.append(phase_data[harmonic_m])
         if printResults:
-            print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {harmonic_amp:.3f} | Phase = {harmonic_phase:.4f}')
+            print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {harmonic_amp[i]:.3f} | Phase = {harmonic_phase[i]:.4f}')
 
     return harmonic_amp, harmonic_phase
 
-sample = load_audio('./audio/note_guitare_LAd.wav')
-sampleample_down = down_sample(sample, 160000, plot=True)
-amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=True, showPhase=False)
 
-harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=True)
+def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
+
+    dn = original_audio.total_time / original_audio.N
+    n = np.arange(0, original_audio.total_time, dn)
+
+    n2 = np.arange(0.1, 0.12, dn)
+
+    plt.figure(4)
+    synth_signal = 0
+    synth_test = 0
+    for i in range(0, sin_count):
+        amp = harmonic_amp[i]
+        freq = 2*np.pi*(f0*(i+1))
+        phase = harmonic_phase[i]
+
+        new_sin = amp*np.sin(freq*n + phase)
+        synth_signal = synth_signal + new_sin
+
+        # if i < 2:
+        #     test_sin = amp*np.sin(freq*n2 - phase)
+        #     plt.plot(n2, test_sin, 'b')
+        #     synth_test = synth_test + test_sin
+
+    # plt.plot(n2, synth_test, 'r')
+    # plt.show()
+    # plt.figure(5)
+    # plt.plot(n, synth_signal)
+
+    print(np.round(synth_signal))
+    wavfile.write('./audio/out_audio.wav', original_audio.Fe, np.round(synth_signal))
 
 
+
+
+sample = load_audio(guitarFile)
+sample_down = down_sample(sample, plot=True)#, start_time=0.17, end_time=0.18)
+amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False, showPhase=False) # , start_m=0, end_m=1000)
+
+harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
+#sample_synthesis(466, harm_amp, harm_phase, sample)
 
 
 plt.show()
