@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
 from scipy import signal
+import Filtres
 
 guitarFile = './audio/note_guitare_LAd.wav'
 bassonFile = './audio/note_basson_plus_sinus_1000_Hz.wav'
-
 
 class AudioSample:
     def __init__(self, Fe, data):
@@ -165,43 +165,24 @@ def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printRe
     return harmonic_amp, harmonic_phase
 
 
-def filtrePasseBas(audioSample, normalized=False):
-    wc = np.pi / 1000
-    Fe = audioSample.Fe
-    N = audioSample.N
-    w_norm = 2 * np.pi / N
-    fc = wc * Fe / (2 * np.pi)
-
-    m = Fe * N / Fe
-    k = 2 * m + 1
-
-    n = np.arange(0, w_norm * N, w_norm) if normalized else np.arange(0, N, 1)
-
-    FIRpb = np.zeros(N)
-
-    # Calculer valeurs du filtres
-    index = 0
-    for nval in n:
-        if index == 0:
-            FIRpb[index] = k / N
-            #hwindow[index] = k / N * window[index]
-        else:
-            FIRpb[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N))
-            #hwindow[index] = np.sin(np.pi * nval * k / N) / (N * np.sin(np.pi * nval / N)) * window[index]
-        index += 1
-
-    return FIRpb
-
 def convFiltre(signal, filtre, y_dB=False, verbose=False):
 
-    if y_dB:
-        redressedSignal = 20 * np.log10(np.abs(signal.data))
-    else:
-        redressedSignal = np.abs(signal.data)
+    newN = len(signal.data) + len(filtre) - 1
+
+    # Pad signals with 0 for Nh + Nx - 1
+    paddedSignal = np.concatenate([signal.data, np.zeros(newN - len(signal.data))])
+    paddedFiltre = np.concatenate([filtre, np.zeros(newN - len(filtre))])
+
+    redressedSignal = np.abs(paddedSignal)
 
     # Convolution du filtre et du signal
     redressedFFTSignal = np.fft.fft(redressedSignal)
-    filterFFT = np.fft.fft(filtre)
+    filterFFT = np.fft.fft(paddedFiltre)
+
+    if y_dB:
+        redressedFFTSignal = 20 * np.log10(np.abs(redressedFFTSignal))
+        filterFFT = 20 * np.log10(np.abs(paddedFiltre))
+
 
     filteredSignalFrequentiel = filterFFT * redressedFFTSignal
     filteredSignalTemporel = np.fft.ifft(filteredSignalFrequentiel)
@@ -219,7 +200,7 @@ def convFiltre(signal, filtre, y_dB=False, verbose=False):
         # Réponse du filtre
         plt.subplot(3,2,3)
         plt.title("Filtre passe-bas")
-        plt.plot(filtre)
+        plt.plot(paddedFiltre)
         plt.subplot(3, 2, 4)
         plt.title("Filtre passe-bas (freq)")
         plt.plot(np.abs(np.fft.fft(redressedSignal)))
@@ -227,48 +208,21 @@ def convFiltre(signal, filtre, y_dB=False, verbose=False):
         # Filtre * signal
         #filteredSignal = np.abs(redressedSignal * FIRpb)
         plt.subplot(3,2,5)
-        plt.title("Signal redressé convolué avec filtre passe-bas")
+        plt.title("Signal conv. filtre passe-bas")
         plt.plot(np.abs(filteredSignalTemporel))
         plt.subplot(3, 2, 6)
-        plt.title("Signal redressé convolué avec filtre passe-bas (freq)")
+        plt.title("Signal conv. filtre passe-bas (freq)")
         plt.plot(np.abs(filteredSignalFrequentiel))
 
-        plt.show(np.abs(filteredSignalFrequentiel))
+        # plt.show(np.abs(filteredSignalFrequentiel))
 
-    return
+    return np.abs(filteredSignalTemporel)
 
-def filtreCoupeBande(signal, normalized=False, verbose=False):
-
-    N = signal.N
-    filtreCB = np.zeros(N)
-
-    w1 = (1040 - 960) / 2
-    w0 = 960 + w1
-
-    n = np.arange(0, N, 1)
-
-    reponseImp = filtrePasseBas(signal, normalized)
-    d = np.concatenate([[1], np.zeros(N-1)])
-
-    filtreCB = d - 2 * reponseImp * np.cos(w0 * n)
-
-    if verbose:
-        plt.figure()
-        plt.subplot(2,1,1)
-        plt.title("Filtre coupe-bande temporel")
-        plt.plot(filtreCB)
-        plt.subplot(2,1,2)
-        plt.title("Filtre coupe-bande frequentiel")
-        plt.plot(np.abs(np.fft.fft(filtreCB)))
-
-    return filtreCB
 
 def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
 
     dn = original_audio.total_time / original_audio.N
     n = np.arange(0, original_audio.total_time, dn)
-
-    n2 = np.arange(0.1, 0.12, dn)
 
     plt.figure(4)
     synth_signal = 0
@@ -288,8 +242,8 @@ def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count
 
     # plt.plot(n2, synth_test, 'r')
     # plt.show()
-    # plt.figure(5)
-    # plt.plot(n, synth_signal)
+    plt.figure(5)
+    plt.plot(n, synth_signal)
 
     synth_signal = synth_signal.astype("int16")
     #print(synth_signal, original_audio.Fe)
@@ -301,22 +255,46 @@ def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count
 
 def guitFunct():
     sample = load_audio(guitarFile)
-    sample_down = down_sample(sample, plot=True, window=False)  # , start_time=0.17, end_time=0.18)
+    sample_down = down_sample(sample, plot=True, window=True)  # , start_time=0.17, end_time=0.18)
     amp, phase, inv_fft_signal = fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False, showPhase=False)#, start_m=13500, end_m=13600)
 
     harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample_down, printResults=False)
     sample_synthesis(466, harm_amp, harm_phase, sample_down)
 
-    filtrePB = filtrePasseBas(sample_down, normalized=True)
-    convFiltre(sample_down, filtrePB, False, True)
+    # ----
+
+    wc = np.pi/1000
+    dBGain = -3
+
+    indB = False
+
+    Npb, Hpb, hpb = Filtres.calcCoeffFIRPB(wc, dBGain)
+    filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, normalized=True, verbose=True)
+    envelope = convFiltre(sample, filtrePB, y_dB=indB, verbose=True)
+
+    dn = (sample_down.total_time) / (sample_down.N + 883)
+    t = np.arange(0, sample_down.total_time, dn)
+
+    inv_fft_signal_padded = np.append(inv_fft_signal, [0]*883)
+
+    final_synth_signal = envelope * inv_fft_signal_padded
+    plt.figure(7)
+    # plt.plot(t, envelope, 'b')
+    # plt.plot(t, inv_fft_signal_padded, 'g')
+    plt.plot(t, final_synth_signal, 'r')
+    plt.title('final synth')
+
+    final_synth_signal = final_synth_signal.astype("int16")
+
+    wavfile.write('./audio/final_synth.wav', sample_down.Fe, final_synth_signal)
 
     plt.show()
 
 
 def bassonFunct():
-    sample = load_audio('./audio/note_basson_plus_sinus_1000_Hz.wav')
+    sample = load_audio(bassonFile)
 
-    filtreCB = filtreCoupeBande(sample, normalized=False, verbose=True)
+    filtreCB = Filtres.filtreCoupeBande(sample, normalized=False, verbose=True)
 
     plt.show()
 
