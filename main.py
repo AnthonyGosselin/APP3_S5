@@ -21,7 +21,7 @@ def load_audio(file):
 
 
 # Down sample beginning
-def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=True):
+def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=True, window=False):
 
     # Resolve parameters
     samples = not samples and audioSample.N or samples
@@ -34,19 +34,38 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
     print(N2)
 
     down_sample_data = signal.resample(audioSample.data[start_ind:end_ind], N2)
+    if window:
+        down_sample_data = down_sample_data * np.hanning(N2)
     dn = (end_time - start_time) / N2
     n = np.arange(start_time, end_time, dn)
 
-    newFe = audioSample.Fe*(samples/audioSample.N)
+    newFe = int(audioSample.Fe*(samples/audioSample.N))
 
     if plot:
         plt.figure(1)
-        plt.plot(n, down_sample_data*np.hanning(N2))
+        plt.plot(n, down_sample_data)
         plt.title('LA# (N: ' + str(N2) + '), time: ' + str(start_time) + 's - ' + str(end_time) + 's')
 
     plt.show()
 
     return AudioSample(newFe, down_sample_data)
+
+
+def get_local_max(data, center_val):
+    r = 20
+    max = 0
+    max_ind = 0
+    for i in range(center_val-r, center_val+r+1):
+        val = data[i]
+        if val > max:
+            max = val
+            max_ind = i
+
+    # if max_ind == center_val - r or max_ind == center_val + r:
+    #     print("LIMIT CASE")
+
+    return max_ind, max
+
 
 # Return FULL amplitude and phase (not just for the specified intervals)
 def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = False, showPhase=False, start_m=0, end_m=None):
@@ -95,9 +114,41 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
         plt.plot(m, phase, 'g')
         plt.title('Spectre phase')
 
+
+    # Test: retain 32 sinus
+    newData = [0]*audioSample.N
+    sin_extract = []
+    sinus_count = 0
+
+    for h in range(1, 32+1):
+        freq = 466*h
+        ind_m = int(freq*audioSample.N/audioSample.Fe)
+        max_ind, max_amp = get_local_max(amp, ind_m)
+        newData[max_ind] = max_amp
+        sin_extract.append(amp[ind_m])
+        # print(max_ind, max_amp)
+
+
+    # print(sin_extract)
+    plt.figure(3)
+    plt.plot(m, newData)
+    plt.title('32 sin extrait')
+
+    dn = (audioSample.total_time) / audioSample.N
+    t = np.arange(0, audioSample.total_time, dn)
+
+    plt.figure(4)
+    inv_signal = np.fft.ifft(newData)
+    plt.plot(t, inv_signal)
+    plt.title("Inverse fft for synth signal")
+    inv_signal = inv_signal.astype("int16")
+    print(inv_signal)
+
+    wavfile.write('./audio/inv_spectra.wav', audioSample.Fe, inv_signal)
+
     plt.show()
 
-    return amp, phase
+    return amp, phase, inv_signal
 
 def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printResults=True):
     harmonic_amp = []
@@ -105,10 +156,11 @@ def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printRe
     for i in range(1, num_harmonics+1):
         harmonic_freq = f0 * i
         harmonic_m = round(harmonic_freq * sample.N / sample.Fe)
-        harmonic_amp.append(amp_data[harmonic_m])
-        harmonic_phase.append(phase_data[harmonic_m])
+        max_ind, max_amp = get_local_max(amp_data, harmonic_m)
+        harmonic_amp.append(amp_data[max_ind])
+        harmonic_phase.append(phase_data[max_ind])
         if printResults:
-            print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {harmonic_amp[i]:.3f} | Phase = {harmonic_phase[i]:.4f}')
+            print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {amp_data[harmonic_m]:.3f} | Phase = {phase_data[harmonic_m]:.4f}')
 
     return harmonic_amp, harmonic_phase
 
@@ -181,8 +233,9 @@ def convFiltre(signal, filtre, y_dB=False, verbose=False):
         plt.title("Signal redressé convolué avec filtre passe-bas (freq)")
         plt.plot(np.abs(filteredSignalFrequentiel))
 
-        plt.show()
+        plt.show(np.abs(filteredSignalFrequentiel))
 
+    return
 
 def filtreCoupeBande(signal, normalized=False, verbose=False):
 
@@ -210,51 +263,52 @@ def filtreCoupeBande(signal, normalized=False, verbose=False):
 
     return filtreCB
 
-    def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
+def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
 
-        dn = original_audio.total_time / original_audio.N
-        n = np.arange(0, original_audio.total_time, dn)
+    dn = original_audio.total_time / original_audio.N
+    n = np.arange(0, original_audio.total_time, dn)
 
-        n2 = np.arange(0.1, 0.12, dn)
+    n2 = np.arange(0.1, 0.12, dn)
 
-        plt.figure(4)
-        synth_signal = 0
-        synth_test = 0
-        for i in range(0, sin_count):
-            amp = harmonic_amp[i]
-            freq = 2 * np.pi * (f0 * (i + 1))
-            phase = harmonic_phase[i]
+    plt.figure(4)
+    synth_signal = 0
+    synth_test = 0
+    for i in range(0, sin_count):
+        amp = harmonic_amp[i]
+        freq = 2 * np.pi * (f0 * (i + 1))
+        phase = harmonic_phase[i]
 
-            new_sin = amp * np.sin(freq * n + phase)
-            synth_signal = synth_signal + new_sin
+        new_sin = amp * np.sin(freq * n - phase)
+        synth_signal = synth_signal + new_sin
 
-            # if i < 2:
-            #     test_sin = amp*np.sin(freq*n2 - phase)
-            #     plt.plot(n2, test_sin, 'b')
-            #     synth_test = synth_test + test_sin
+        # if i < 2:
+        #     test_sin = amp*np.sin(freq*n2 - phase)
+        #     plt.plot(n2, test_sin, 'b')
+        #     synth_test = synth_test + test_sin
 
-        # plt.plot(n2, synth_test, 'r')
-        # plt.show()
-        # plt.figure(5)
-        # plt.plot(n, synth_signal)
+    # plt.plot(n2, synth_test, 'r')
+    # plt.show()
+    # plt.figure(5)
+    # plt.plot(n, synth_signal)
 
-        print(np.round(synth_signal))
-        wavfile.write('./audio/out_audio.wav', original_audio.Fe, np.round(synth_signal))
+    synth_signal = synth_signal.astype("int16")
+    #print(synth_signal, original_audio.Fe)
+
+    wavfile.write('./audio/out_audio.wav', original_audio.Fe, synth_signal)
 
     ###########################################################################################
 
 
 def guitFunct():
     sample = load_audio(guitarFile)
-    sample_down = down_sample(sample, plot=True)  # , start_time=0.17, end_time=0.18)
-    amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
-                                 showPhase=False)  # , start_m=0, end_m=1000)
+    sample_down = down_sample(sample, plot=True, window=False)  # , start_time=0.17, end_time=0.18)
+    amp, phase, inv_fft_signal = fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False, showPhase=False)#, start_m=13500, end_m=13600)
 
-    harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
-    # sample_synthesis(466, harm_amp, harm_phase, sample)
+    harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample_down, printResults=False)
+    sample_synthesis(466, harm_amp, harm_phase, sample_down)
 
-    filtrePB = filtrePasseBas(sample, normalized=True)
-    convFiltre(sample, filtrePB, False, True)
+    filtrePB = filtrePasseBas(sample_down, normalized=True)
+    convFiltre(sample_down, filtrePB, False, True)
 
     plt.show()
 
@@ -266,5 +320,5 @@ def bassonFunct():
 
     plt.show()
 
-#guitFunct()
-bassonFunct()
+guitFunct()
+#bassonFunct()
