@@ -210,13 +210,48 @@ def filtreCoupeBande(signal, normalized=False, verbose=False):
 
     return filtreCB
 
+    def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
+
+        dn = original_audio.total_time / original_audio.N
+        n = np.arange(0, original_audio.total_time, dn)
+
+        n2 = np.arange(0.1, 0.12, dn)
+
+        plt.figure(4)
+        synth_signal = 0
+        synth_test = 0
+        for i in range(0, sin_count):
+            amp = harmonic_amp[i]
+            freq = 2 * np.pi * (f0 * (i + 1))
+            phase = harmonic_phase[i]
+
+            new_sin = amp * np.sin(freq * n + phase)
+            synth_signal = synth_signal + new_sin
+
+            # if i < 2:
+            #     test_sin = amp*np.sin(freq*n2 - phase)
+            #     plt.plot(n2, test_sin, 'b')
+            #     synth_test = synth_test + test_sin
+
+        # plt.plot(n2, synth_test, 'r')
+        # plt.show()
+        # plt.figure(5)
+        # plt.plot(n, synth_signal)
+
+        print(np.round(synth_signal))
+        wavfile.write('./audio/out_audio.wav', original_audio.Fe, np.round(synth_signal))
+
+    ###########################################################################################
+
 
 def guitFunct():
-    sample = load_audio('./audio/note_guitare_LAd.wav')
-    sampleample_down = down_sample(sample, 160000, plot=True)
-    amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=True, showPhase=False)
+    sample = load_audio(guitarFile)
+    sample_down = down_sample(sample, plot=True)  # , start_time=0.17, end_time=0.18)
+    amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
+                                 showPhase=False)  # , start_m=0, end_m=1000)
 
-    harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=True)
+    harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
+    # sample_synthesis(466, harm_amp, harm_phase, sample)
 
     filtrePB = filtrePasseBas(sample, normalized=True)
     convFiltre(sample, filtrePB, False, True)
