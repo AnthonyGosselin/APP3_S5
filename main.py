@@ -213,7 +213,7 @@ def guitFunct():
     indB = False
 
     Npb, Hpb, hpb = Filtres.calcCoeffFIRPB(wc, dBGain)
-    filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, normalized=True, verbose=True)
+    filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, xFreq=True, normalized=False, verbose=True)
     convFiltre(sample, filtrePB, y_dB=indB, verbose=True)
 
     plt.show()
@@ -221,10 +221,16 @@ def guitFunct():
 
 def bassonFunct():
     sample = load_audio(bassonFile)
+    sample_down = down_sample(sample, plot=False)  # , start_time=0.17, end_time=0.18)
+    amp, phase = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
+                                 showPhase=False)  # , start_m=0, end_m=1000)
 
-    filtreCB = Filtres.filtreCoupeBande(sample, normalized=False, verbose=True)
+    harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
+    # sample_synthesis(466, harm_amp, harm_phase, sample)
+
+    filtreCB = Filtres.filtreCoupeBande(sample, xFreq=False, normalized=False, verbose=True)
 
     plt.show()
 
-guitFunct()
-#bassonFunct()
+#guitFunct()
+bassonFunct()
