@@ -115,15 +115,21 @@ def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printRe
 
 def convFiltre(signal, filtre, y_dB=False, verbose=False):
 
-    redressedSignal = np.abs(signal.data)
+    newN = len(signal.data) + len(filtre) - 1
+
+    # Pad signals with 0 for Nh + Nx - 1
+    paddedSignal = np.concatenate([signal.data, np.zeros(newN - len(signal.data))])
+    paddedFiltre = np.concatenate([filtre, np.zeros(newN - len(filtre))])
+
+    redressedSignal = np.abs(paddedSignal)
 
     # Convolution du filtre et du signal
     redressedFFTSignal = np.fft.fft(redressedSignal)
-    filterFFT = np.fft.fft(filtre)
+    filterFFT = np.fft.fft(paddedFiltre)
 
     if y_dB:
         redressedFFTSignal = 20 * np.log10(np.abs(redressedFFTSignal))
-        filterFFT = 20 * np.log10(np.abs(filterFFT))
+        filterFFT = 20 * np.log10(np.abs(paddedFiltre))
 
 
     filteredSignalFrequentiel = filterFFT * redressedFFTSignal
@@ -142,7 +148,7 @@ def convFiltre(signal, filtre, y_dB=False, verbose=False):
         # Réponse du filtre
         plt.subplot(3,2,3)
         plt.title("Filtre passe-bas")
-        plt.plot(filtre)
+        plt.plot(paddedFiltre)
         plt.subplot(3, 2, 4)
         plt.title("Filtre passe-bas (freq)")
         plt.plot(np.abs(np.fft.fft(redressedSignal)))
@@ -201,8 +207,14 @@ def guitFunct():
     harm_amp, harm_phase = get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
     # sample_synthesis(466, harm_amp, harm_phase, sample)
 
-    filtrePB = Filtres.filtrePasseBas(sample, y_dB=True, normalized=True, verbose=True)
-    #convFiltre(sample, filtrePB, y_dB=True, verbose=True)
+    wc = np.pi/1000
+    dBGain = -3
+
+    indB = False
+
+    Npb, Hpb, hpb = Filtres.calcCoeffFIRPB(wc, dBGain)
+    filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, normalized=True, verbose=True)
+    convFiltre(sample, filtrePB, y_dB=indB, verbose=True)
 
     plt.show()
 
