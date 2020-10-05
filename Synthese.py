@@ -45,8 +45,6 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
         plt.plot(n, down_sample_data)
         plt.title('LA# (N: ' + str(N2) + '), time: ' + str(start_time) + 's - ' + str(end_time) + 's')
 
-    plt.show()
-
     return AudioSample(newFe, down_sample_data)
 
 
@@ -82,7 +80,7 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
 
     # Compute amplitude
     dft = np.fft.fft(audioSample.data)
-    amp = np.abs(dft)
+    amp = np.abs(dft)/audioSample.N
     if y_dB:
         amp = 20 * np.log10(amp)
 
@@ -114,7 +112,7 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
         plt.title('Spectre phase')
 
 
-    # Test: retain 32 sinus
+    # Test: retain 32 sinus-------------------
     newData = [0]*audioSample.N
     sin_extract = []
     sinus_count = 0
@@ -144,8 +142,6 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
 
     write_audio('inv_spectra', audioSample.Fe, inv_signal)
 
-    plt.show()
-
     return amp, phase, inv_signal
 
 def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printResults=True):
@@ -168,7 +164,7 @@ def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count
     dn = original_audio.total_time / original_audio.N
     n = np.arange(0, original_audio.total_time, dn)
 
-    plt.figure(4)
+    #plt.figure(4)
     synth_signal = 0
     synth_test = 0
     for i in range(0, sin_count):
@@ -208,4 +204,4 @@ def apply_envelope(envelope, data, total_time, N):
     plt.plot(t, final_synth_signal, 'r')
     plt.title('final synth')
 
-    final_synth_signal = final_synth_signal.astype("int16")
+    write_audio('final_synth', 44100, final_synth_signal)
