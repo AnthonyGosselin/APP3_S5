@@ -112,6 +112,16 @@ def bassonFunct():
     filtreCB = Filtres.filtreCoupeBande2(sample, xFreq=True, normalized=False, verbose=True)
 
     signalFiltered = np.convolve(sample.data, filtreCB)
+
+    # Filtre * signal
+    # filteredSignal = np.abs(redressedSignal * FIRpb)
+    plt.subplot(2, 1, 1)
+    plt.title("Signal conv. filtre passe-bas")
+    plt.plot(signalFiltered)
+    plt.subplot(2, 1, 2)
+    plt.title("Signal conv. filtre passe-bas (freq)")
+    plt.plot(np.abs(np.fft.fft(signalFiltered)))
+
     signalFiltered = np.convolve(signalFiltered, filtreCB)
 
     signalAudioFiltered = Synthese.write_audio("bassonFiltered", sample.Fe, signalFiltered)
