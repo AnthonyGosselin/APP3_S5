@@ -16,7 +16,7 @@ def load_audio(file):
     return AudioSample(Fe, data)
 
 def write_audio(file_name, Fe, data):
-    data_in16 = data.astype("int16")
+    data_in16 = np.real(data).astype("int16")
     wavfile.write('./audio/'+file_name+'.wav', Fe, data_in16)
 
 # Down sample beginning
