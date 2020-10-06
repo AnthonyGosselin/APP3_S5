@@ -4,7 +4,7 @@ from scipy.io import wavfile
 from scipy import signal
 
 def calcCoeffFIRPB(w, dB):
-    N = np.arange(1, 1000)
+    N = np.arange(1, 30000)
 
     bestdiff = 9999999
     bestN = 0
@@ -14,8 +14,8 @@ def calcCoeffFIRPB(w, dB):
 
         h = 1 / Nval
 
-        num = np.e**(complex(0,w*Nval/2))*np.sin(w*Nval/2)
-        den = np.e**(complex(0,w/2))*np.sin(w/2)
+        num = np.e**(complex(0,-w*Nval/2))*np.sin(w*Nval/2)
+        den = np.e**(complex(0,-w/2))*np.sin(w/2)
         H = np.abs(num/den) * h
         #print("N = " + str(Nval) + ", H = " + str(H) + ", pour h = " + str(h))
 
@@ -28,10 +28,33 @@ def calcCoeffFIRPB(w, dB):
 
     return bestN, bestH, 1/bestN
 
+
+def calcCoeff2(w, dB):
+    N = np.arange(1, 10000)
+
+    bestdiff = 9999999
+    bestN = 0
+    bestH = 0
+
+    for Nval in N:
+
+        h = np.ones(Nval+1) * (1/(Nval+1))
+        H = np.fft.fft(h)
+        diff = np.abs((10 ** (dB / 20)) - np.abs(H[int(Nval/2000)]))
+
+        if diff < bestdiff:
+            bestdiff = diff
+            bestN = Nval
+            bestH = np.abs(H[int(Nval/2000)])
+
+    return bestN, bestH, 1 / bestN
+
+
 def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=True, normalized=False, verbose=True):
 
     if forcedNVal != 0:
         w_norm = 2 * np.pi / forcedNVal
+
         if normalized:
             n = np.arange(0, w_norm * forcedNVal, w_norm)
         elif xFreq:
@@ -39,6 +62,7 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
             n = np.arange(0, step*forcedNVal, step)
         else:
             n = np.arange(0, forcedNVal, 1)
+
         FIRpb = np.zeros(forcedNVal)
         index = 0
         for nval in n:
@@ -47,7 +71,7 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
 
     else:
         Fe = audioSample.Fe
-        N = audioSample.N
+        N = 1024
         w_norm = 2 * np.pi / N
 
         wc = w_norm * fc
@@ -62,7 +86,7 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
         else:
             n = np.arange(0, N, 1)
 
-        FIRpb = np.zeros(len(n))
+        FIRpb = np.zeros(N)
 
         # Calculer valeurs du filtres
         index = 0
@@ -99,8 +123,9 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
 
 def filtreCoupeBande(signalInput, xFreq=True, normalized=False, verbose=False):
 
-    N = signalInput.N
+    N = 1024
     Fe = signalInput.Fe
+    w_norm = 2 * np.pi / N
 
     fc = 960
     mc = fc * Fe / N
@@ -108,17 +133,18 @@ def filtreCoupeBande(signalInput, xFreq=True, normalized=False, verbose=False):
     f1 = (1040 - fc) / 2
     f0 = fc + f1
 
-    w0 = f0 * 2 * np.pi / Fe
-    w1 = f1 * 2 * np.pi / Fe
+    #w0 = f0 * 2 * np.pi / Fe
+    #w1 = f1 * 2 * np.pi / Fe
 
     n = np.arange(0, N, 1)
+    #n = np.arange(0, w_norm * N, w_norm)
     m = n
 
     if xFreq:
-        step = signal.Fe / N
+        step = Fe / N
         m = np.arange(0, N*step, step)
 
-    reponseImp = filtrePasseBas(signalInput, fc=f0, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=xFreq, normalized=normalized, verbose=verbose)
+    reponseImp = filtrePasseBas(signalInput, fc=f1, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=xFreq, normalized=True, verbose=verbose)
     d = np.concatenate([[1], np.zeros(N-1)])
 
     filtreCB = d - 2 * reponseImp * np.cos(f0 * n)
@@ -136,4 +162,7 @@ def filtreCoupeBande(signalInput, xFreq=True, normalized=False, verbose=False):
 
 
 N, H, h = calcCoeffFIRPB(np.pi/1000, -3)
-#print("N = " + str(N) + ", H = " + str(H) + ", pour h = " + str(h))
+N2, H2, h2 = calcCoeff2(np.pi/1000, -3)
+
+print("N = " + str(N) + ", H = " + str(H) + ", pour h = " + str(h))
+print("N = " + str(N2) + ", H = " + str(H2) + ", pour h = " + str(h2))

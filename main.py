@@ -76,19 +76,34 @@ def guitFunct():
     dBGain = -3
     indB = False
     Npb, Hpb, hpb = Filtres.calcCoeffFIRPB(wc, dBGain)
-    filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, normalized=True, verbose=True)
+
+    filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, xFreq=False, normalized=False, verbose=True)
     envelope = convFiltre(sample, filtrePB, y_dB=indB, verbose=True)
 
     # Synthesis of notes
     Synthese.create_symphony(envelope, harm_amp, harm_phase, sample_down)
 
+    inv_fft_signal_padded = np.append(inv_fft_signal, [0]*883)
+    paddedSignal = np.append(sample.data, [0]*883)
+
+    final_synth_signal = envelope * inv_fft_signal_padded
+    plt.figure()
+    # plt.plot(t, envelope, 'b')
+    # plt.plot(t, inv_fft_signal_padded, 'g')
+    plt.plot(t, final_synth_signal, 'r')
+    plt.title('final synth')
+    plt.plot(t, paddedSignal)
+
+    final_synth_signal = final_synth_signal.astype("int16")
+
+
     plt.show()
 
 
 def bassonFunct():
-    sample = Synthese.load_audio(bassonFile)
-    sample_down = Synthese.down_sample(sample, plot=False)  # , start_time=0.17, end_time=0.18)
-    amp, phase = Synthese.fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
+    sample = load_audio(bassonFile)
+    sample_down = down_sample(sample, plot=False)  # , start_time=0.17, end_time=0.18)
+    amp, phase, invSignal = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
                                  showPhase=False)  # , start_m=0, end_m=1000)
 
     harm_amp, harm_phase = Synthese.get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
