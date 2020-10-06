@@ -65,10 +65,10 @@ def convFiltre(signal, filtre, y_dB=False, verbose=False):
 
 def guitFunct():
     sample = Synthese.load_audio(guitarFile)
-    sample_down = Synthese.down_sample(sample, plot=True, window=False)  # , start_time=0.17, end_time=0.18)
-    amp, phase, inv_fft_signal = Synthese.fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False, showPhase=False)#, start_m=13500, end_m=13600)
+    sample_down = Synthese.down_sample(sample, plot=True, window=True)  # , start_time=0.17, end_time=0.18)
+    amp, phase = Synthese.fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False, showPhase=False, title="Spectre amplitude guitare LA# avec fenêtre Hanning")#, start_m=13500, end_m=13600)
 
-    harm_amp, harm_phase = Synthese.get_harmonic_params(466, 32, amp, phase, sample_down, printResults=False)
+    harm_amp, harm_phase, harm_freq = Synthese.get_harmonic_params(466, 32, amp, phase, sample_down, printResults=False)
 
     # ----
 
@@ -81,36 +81,20 @@ def guitFunct():
     envelope = convFiltre(sample, filtrePB, y_dB=indB, verbose=True)
 
     # Synthesis of notes
-    Synthese.create_symphony(envelope, harm_amp, harm_phase, sample_down)
-
-    inv_fft_signal_padded = np.append(inv_fft_signal, [0]*883)
-    paddedSignal = np.append(sample.data, [0]*883)
-
-    final_synth_signal = envelope * inv_fft_signal_padded
-    plt.figure()
-    # plt.plot(t, envelope, 'b')
-    # plt.plot(t, inv_fft_signal_padded, 'g')
-    #plt.plot(t, final_synth_signal, 'r')
-    plt.title('final synth')
-    #plt.plot(t, paddedSignal)
-
-    final_synth_signal = final_synth_signal.astype("int16")
-
+    Synthese.create_symphony(envelope, harm_amp, harm_phase, harm_freq, sample_down)
 
     plt.show()
 
 
 def bassonFunct():
     sample = Synthese.load_audio(bassonFile)
-    sample_down = Synthese.down_sample(sample, plot=False)  # , start_time=0.17, end_time=0.18)
-    amp, phase, invSignal = Synthese.fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
+    sample_down = Synthese.down_sample(sample, plot=False, window=True)  # , start_time=0.17, end_time=0.18)
+    amp, phase = Synthese.fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False,
                                  showPhase=False)  # , start_m=0, end_m=1000)
-
-    harm_amp, harm_phase = Synthese.get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
-    Synthese.sample_synthesis(466, harm_amp, harm_phase, sample)
 
     filtreCB = Filtres.filtreCoupeBande2(sample, xFreq=True, normalized=False, verbose=True)
 
+    # Application de 2 filtres
     signalFiltered = np.convolve(sample.data, filtreCB)
     signalFiltered = np.convolve(signalFiltered, filtreCB)
 

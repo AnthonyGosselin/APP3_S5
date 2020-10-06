@@ -147,23 +147,6 @@ print("N = " + str(N) + ", H = " + str(H) + ", pour h = " + str(h))
 print("N = " + str(N2) + ", H = " + str(H2) + ", pour h = " + str(h2))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=True, normalized=False, verbose=True):
 
     if forcedNVal != 0:

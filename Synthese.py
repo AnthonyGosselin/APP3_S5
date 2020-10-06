@@ -49,23 +49,25 @@ def down_sample(audioSample, samples=None, start_time=0, end_time=None, plot=Tru
 
 
 def get_local_max(data, center_val):
-    r = 20
-    max = 0
+    r = 1000
+    max = -9999
     max_ind = 0
-    for i in range(center_val-r, center_val+r+1):
+    left = int(r/2)
+    right = r
+    for i in range(center_val-left, center_val+right+1):
         val = data[i]
         if val > max:
             max = val
             max_ind = i
 
-    # if max_ind == center_val - r or max_ind == center_val + r:
-    #     print("LIMIT CASE")
+    if max_ind == center_val - left or max_ind == center_val + right:
+        print("LIMIT CASE")
 
     return max_ind, max
 
 
 # Return FULL amplitude and phase (not just for the specified intervals)
-def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = False, showPhase=False, start_m=0, end_m=None):
+def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = False, showPhase=False, start_m=0, end_m=None, title="Spectre amplitude", figure_num=2):
     end_m = not end_m and audioSample.N or end_m
 
     # X axis
@@ -85,11 +87,11 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
         amp = 20 * np.log10(amp)
 
     # Show amplitude (amp)
-    plt.figure(2)
+    plt.figure(figure_num)
     if showPhase:
         plt.subplot(2, 1, 1)
     plt.plot(m, amp[start_m:end_m], 'g')#, use_line_collection=True)
-    plt.title('Spectre amplitude')
+    plt.title(title)
 
     # Name axis
     if y_dB:
@@ -111,67 +113,50 @@ def fourier_spectra(audioSample, x_normalized=False, x_Freq = False, y_dB = Fals
         plt.plot(m, phase, 'g')
         plt.title('Spectre phase')
 
-
-    # Test: retain 32 sinus-------------------
-    newData = [0]*audioSample.N
-    sin_extract = []
-    sinus_count = 0
-
-    for h in range(1, 32+1):
-        freq = 466*h
-        ind_m = int(freq*audioSample.N/audioSample.Fe)
-        max_ind, max_amp = get_local_max(amp, ind_m)
-        newData[max_ind] = max_amp
-        sin_extract.append(amp[ind_m])
-        # print(max_ind, max_amp)
-
-
-    # print(sin_extract)
-    # plt.figure(3)
-    # plt.plot(m, newData)
-    # plt.title('32 sin extrait')
-
-    # dn = (audioSample.total_time) / audioSample.N
-    # t = np.arange(0, audioSample.total_time, dn)
-    #
-    # plt.figure(4)
-    inv_signal = np.fft.ifft(newData)
-    # plt.plot(t, inv_signal)
-    # plt.title("Inverse fft for synth signal")
-    # print(inv_signal)
-
-    write_audio('inv_spectra', audioSample.Fe, inv_signal)
-
-    return amp, phase, inv_signal
+    return amp, phase
 
 def get_harmonic_params(f0, num_harmonics, amp_data, phase_data, sample, printResults=True):
     harmonic_amp = []
     harmonic_phase = []
+    harmonic_freq = []
     for i in range(1, num_harmonics+1):
-        harmonic_freq = f0 * i
-        harmonic_m = round(harmonic_freq * sample.N / sample.Fe)
+        freq = f0 * i
+        harmonic_m = round(freq * sample.N / sample.Fe)
         max_ind, max_amp = get_local_max(amp_data, harmonic_m)
         harmonic_amp.append(amp_data[max_ind])
         harmonic_phase.append(phase_data[max_ind])
+
+        new_freq = max_ind * sample.Fe / sample.N
+        harmonic_freq.append(new_freq)
         if printResults:
-            print(f'Harmonic #{i}: {harmonic_freq} Hz --> Amp = {amp_data[harmonic_m]:.3f} | Phase = {phase_data[harmonic_m]:.4f}')
+            #print(f' ogm={harmonic_m}, ogf={freq} m={max_ind} Harmonic #{i}: {new_freq} Hz --> Amp = {amp_data[max_ind]:.3f} | Phase = {phase_data[max_ind]:.4f}')
+            print(f'{i}\t{new_freq:.0f}\t{amp_data[max_ind]:.3f}\t{phase_data[max_ind]:.4f}')
 
-    return harmonic_amp, harmonic_phase
+    return harmonic_amp, harmonic_phase, harmonic_freq
 
 
-def sample_synthesis(f0, harmonic_amp, harmonic_phase, original_audio, sin_count=32):
+def sample_synthesis(f0, harmonic_amp, harmonic_phase, harmonic_freq, original_audio, sin_count=32):
 
     dn = original_audio.total_time / original_audio.N
     n = np.arange(0, original_audio.total_time, dn)
+
+    # calculate diff
+    freq_diff = []
+    for i in range(0, sin_count):
+        base_freq = 466 * (i+1)
+        shifted_freq = f0 * (i+1)
+        diff = base_freq - shifted_freq
+        freq_diff.append(diff)
 
     synth_signal = 0
     all_sins = []
     for i in range(0, sin_count):
         amp = harmonic_amp[i]
-        freq = 2 * np.pi * (f0 * (i + 1))
+        freq = harmonic_freq[i] - freq_diff[i] # not using this... forcing freqs instead (similar results)
+        w = 2 * np.pi * freq #(f0 * (i + 1))
         phase = harmonic_phase[i]
 
-        new_sin = amp * np.sin(freq * n + phase)
+        new_sin = amp * np.sin(w * n + phase)
         all_sins.append(new_sin)
         synth_signal = synth_signal + new_sin
 
@@ -191,8 +176,6 @@ def apply_envelope(envelope, data, total_time, N, save_as="final_synth"):
 
     final_synth_signal = envelope * sample_padded / 883
     plt.figure(7)
-    # plt.plot(t, envelope, 'b')
-    # plt.plot(t, inv_fft_signal_padded, 'g')
     plt.plot(t, final_synth_signal, 'r')
     plt.title(save_as)
 
@@ -201,18 +184,21 @@ def apply_envelope(envelope, data, total_time, N, save_as="final_synth"):
     return final_synth_signal
 
 
-def generate_synthesis(f0, envelope, harm_amp, harm_phase, sample, save_as="final_synth"):
-    sin_sum, all_sins = sample_synthesis(f0, harm_amp, harm_phase, sample, 32)
+def generate_synthesis(f0, envelope, harm_amp, harm_phase, harm_freq, sample, save_as="final_synth"):
+    sin_sum, all_sins = sample_synthesis(f0, harm_amp, harm_phase, harm_freq, sample, 32)
     final_signal = apply_envelope(envelope, sin_sum, sample.total_time, sample.N, save_as=save_as)
 
     return final_signal
 
-def create_symphony(envelope, harm_amp, harm_phase, sample_down):
-    la_d = generate_synthesis(466, envelope, harm_amp, harm_phase, sample_down, save_as="final_LAd")
-    sol = generate_synthesis(392, envelope, harm_amp, harm_phase, sample_down, save_as="final_SOL")
-    mi_b = generate_synthesis(311, envelope, harm_amp, harm_phase, sample_down, save_as="final_MIb")
-    fa = generate_synthesis(349, envelope, harm_amp, harm_phase, sample_down, save_as="final_FA")
-    re = generate_synthesis(294, envelope, harm_amp, harm_phase, sample_down, save_as="final_RE")
+def create_symphony(envelope, harm_amp, harm_phase, harm_freq, sample_down):
+    la_d = generate_synthesis(466, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_LAd")
+    sol = generate_synthesis(392, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_SOL")
+    mi_b = generate_synthesis(311, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_MIb")
+    fa = generate_synthesis(349, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_FA")
+    re = generate_synthesis(294, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_RE")
+
+    lad_sample = AudioSample(44100, la_d)
+    fourier_spectra(lad_sample, x_Freq=True, y_dB = True, title="Spectre amplitude LA# synthèse", figure_num=10)
 
     st = 5000
     end = 15000
