@@ -152,7 +152,7 @@ def sample_synthesis(f0, harmonic_amp, harmonic_phase, harmonic_freq, original_a
     all_sins = []
     for i in range(0, sin_count):
         amp = harmonic_amp[i]
-        freq = harmonic_freq[i] - freq_diff[i] # not using this... forcing freqs instead (similar results)
+        freq = harmonic_freq[i] - freq_diff[i]
         w = 2 * np.pi * freq #(f0 * (i + 1))
         phase = harmonic_phase[i]
 
