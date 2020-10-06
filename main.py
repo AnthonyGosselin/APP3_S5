@@ -90,9 +90,9 @@ def guitFunct():
     plt.figure()
     # plt.plot(t, envelope, 'b')
     # plt.plot(t, inv_fft_signal_padded, 'g')
-    plt.plot(t, final_synth_signal, 'r')
+    #plt.plot(t, final_synth_signal, 'r')
     plt.title('final synth')
-    plt.plot(t, paddedSignal)
+    #plt.plot(t, paddedSignal)
 
     final_synth_signal = final_synth_signal.astype("int16")
 
@@ -101,17 +101,17 @@ def guitFunct():
 
 
 def bassonFunct():
-    sample = load_audio(bassonFile)
-    sample_down = down_sample(sample, plot=False)  # , start_time=0.17, end_time=0.18)
-    amp, phase, invSignal = fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
+    sample = Synthese.load_audio(bassonFile)
+    sample_down = Synthese.down_sample(sample, plot=False)  # , start_time=0.17, end_time=0.18)
+    amp, phase, invSignal = Synthese.fourier_spectra(sample, x_normalized=False, x_Freq=True, y_dB=False,
                                  showPhase=False)  # , start_m=0, end_m=1000)
 
     harm_amp, harm_phase = Synthese.get_harmonic_params(466, 32, amp, phase, sample, printResults=False)
     Synthese.sample_synthesis(466, harm_amp, harm_phase, sample)
 
-    filtreCB = Filtres.filtreCoupeBande(sample, xFreq=False, normalized=False, verbose=True)
+    filtreCB = Filtres.filtreCoupeBande2(sample, xFreq=True, normalized=False, verbose=True)
 
     plt.show()
 
-guitFunct()
-#bassonFunct()
+#guitFunct()
+bassonFunct()

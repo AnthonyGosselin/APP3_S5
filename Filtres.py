@@ -50,6 +50,100 @@ def calcCoeff2(w, dB):
     return bestN, bestH, 1 / bestN
 
 
+def filtrePasseBas2(audioSample, fc=0, y_dB=False, normalized=False, verbose=True):
+    N = 1024
+    w_norm = 2 * np.pi / N
+    Fe = audioSample.Fe
+
+    #fc = w_norm * fc
+    mc = fc * N / Fe
+    kc = 2 * mc + 1
+
+    n = np.arange(0, N, 1)
+
+    if normalized:
+        n = n * w_norm
+
+    FIRpb = np.zeros(N)
+
+    # Calculer valeurs du filtres
+    index = 0
+    for nval in n:
+        if index == 0:
+            FIRpb[index] = kc / N
+        else:
+            FIRpb[index] = np.sin(np.pi * nval * kc / N) / (N * np.sin(np.pi * nval / N))
+        index += 1
+
+    if verbose:
+        # Réponse du filtre
+        plt.figure()
+        plt.subplot(2, 1, 1)
+        plt.title("Filtre passe-bas : " + str(fc))
+        if y_dB:
+            plt.plot(n, 20*np.log10(np.abs(FIRpb)))
+            plt.ylabel("Amplitude (dB)")
+        else:
+            plt.plot(n, FIRpb)
+            plt.ylabel("Amplitude")
+
+        plt.subplot(2, 1, 2)
+        plt.title("Filtre passe-bas (freq)")
+        if y_dB:
+            FFTFIRpb = np.fft.fft(FIRpb)
+            plt.plot(n, 20*np.log10(np.abs(FFTFIRpb)))
+            plt.ylabel("Amplitude (dB)")
+        else:
+            plt.plot(n, np.abs(np.fft.fft(FIRpb)))
+            plt.ylabel("Amplitude")
+        plt.show()
+
+    return FIRpb
+
+def filtreCoupeBande2(signalInput, xFreq=True, normalized=False, verbose=False):
+    N = 1024
+    w_norm = 2 * np.pi / N
+    Fe = signalInput.Fe
+
+    n = np.arange(0, N, 1)
+    #n = np.arange(0, w_norm * N, w_norm)
+    m = n
+
+    if xFreq:
+        m = m * Fe / N
+
+    fc = 960
+    f1 = (1040 - 960) / 2
+    f0 = 960 + f1
+    wc = fc * w_norm
+    w1 = f1 * w_norm
+    w0 = f0 * w_norm
+
+    d = np.concatenate([[1], np.zeros(N-1)])
+
+    hlp = filtrePasseBas2(signalInput, fc=w1, y_dB=False, normalized=True, verbose=verbose)
+
+    filtreCB = d - 2 * hlp * np.cos(w0 * n)
+
+    if verbose:
+        plt.figure()
+        plt.subplot(2,1,1)
+        plt.title("Filtre coupe-bande temporel")
+        plt.plot(m, filtreCB)
+        plt.subplot(2,1,2)
+        plt.title("Filtre coupe-bande frequentiel")
+        plt.plot(m, np.abs(np.fft.fft(filtreCB)))
+
+    return filtreCB
+
+
+
+N, H, h = calcCoeffFIRPB(np.pi/1000, -3)
+N2, H2, h2 = calcCoeff2(np.pi/1000, -3)
+
+print("N = " + str(N) + ", H = " + str(H) + ", pour h = " + str(h))
+print("N = " + str(N2) + ", H = " + str(H2) + ", pour h = " + str(h2))
+
 def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=True, normalized=False, verbose=True):
 
     if forcedNVal != 0:
@@ -74,7 +168,7 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
         N = 1024
         w_norm = 2 * np.pi / N
 
-        wc = w_norm * fc
+        #fc = w_norm * fc
         mc = fc * N / Fe
         kc = 2 * mc + 1
 
@@ -101,7 +195,7 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
         # Réponse du filtre
         plt.figure()
         plt.subplot(2, 1, 1)
-        plt.title("Filtre passe-bas")
+        plt.title("Filtre passe-bas : " + str(fc))
         if y_dB:
             plt.plot(n, 20*np.log10(np.abs(FIRpb)))
             plt.ylabel("Amplitude (dB)")
@@ -144,7 +238,7 @@ def filtreCoupeBande(signalInput, xFreq=True, normalized=False, verbose=False):
         step = Fe / N
         m = np.arange(0, N*step, step)
 
-    reponseImp = filtrePasseBas(signalInput, fc=f1, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=xFreq, normalized=True, verbose=verbose)
+    reponseImp = filtrePasseBas(signalInput, fc=f1, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=xFreq, normalized=False, verbose=verbose)
     d = np.concatenate([[1], np.zeros(N-1)])
 
     filtreCB = d - 2 * reponseImp * np.cos(f0 * n)
@@ -159,10 +253,3 @@ def filtreCoupeBande(signalInput, xFreq=True, normalized=False, verbose=False):
         plt.plot(m, np.abs(np.fft.fft(filtreCB)))
 
     return filtreCB
-
-
-N, H, h = calcCoeffFIRPB(np.pi/1000, -3)
-N2, H2, h2 = calcCoeff2(np.pi/1000, -3)
-
-print("N = " + str(N) + ", H = " + str(H) + ", pour h = " + str(h))
-print("N = " + str(N2) + ", H = " + str(H2) + ", pour h = " + str(h2))
