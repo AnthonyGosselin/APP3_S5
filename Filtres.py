@@ -92,8 +92,10 @@ def filtreCoupeBande(signalInput, y_dB=False, xFreq=True, normalized=False, verb
 
     if xFreq:
         m = m * Fe / N
+        #m = m[int(m.size / 2):-int(m.size / 2)]
     elif normalized:
         m = m * w_norm
+        #m = m[int(m.size/2):-int(m.size/2)]
 
     fc = 960
     f1 = (1040 - 960) / 2
@@ -120,24 +122,30 @@ def filtreCoupeBande(signalInput, y_dB=False, xFreq=True, normalized=False, verb
     plt.title("Réponse à 1000 Hz")
     plt.plot(x, sinTest, 'b', label = "Sinus 1 kHz")
 
-    newN = len(sinTest) + len(filtreCB) - 1
+    sinReponse = np.convolve(filtreCB, sinTest)
 
-    #nNorm = np.arange(0, 2 * np.pi * newN / Fe, 2 * np.pi / Fe)
-
-    # Pad signals with 0 for Nh + Nx - 1
-    paddedSignal = np.concatenate([sinTest, np.zeros(newN - len(sinTest))])
-    paddedFiltre = np.concatenate([filtreCB, np.zeros(newN - len(filtreCB))])
-
-    paddedFiltre = np.fft.fftshift(paddedFiltre)
-
-    sinReponse = np.convolve(paddedFiltre, paddedSignal)
-
-    plt.plot(sinReponse[int(paddedFiltre.size/2):-int(paddedFiltre.size/2)], 'g', label = "Sinus atténuée")
+    plt.plot(sinReponse[int(filtreCB.size/2):-int(filtreCB.size/2)], 'g', label = "Sinus atténuée")
     plt.legend(loc = 'upper right')
     plt.ylabel("Amplitude")
     plt.xlabel("Temps")
 
     #filtreCB = np.fft.fftshift(filtreCB)
+
+    # Graphiques de la réponse (amplitude et phase) du coupe-bande
+    amplitudeReponse = np.abs(np.fft.fft(filtreCB))
+    plt.figure(210)
+    plt.subplot(2, 1, 1)
+    plt.title("Amplitude de la réponse coupe-bande")
+    plt.plot(m, amplitudeReponse)
+    plt.ylabel("Amplitude")
+
+    angleReponse = np.angle(np.fft.fft(filtreCB))
+    plt.subplot(2, 1, 2)
+    plt.title("Phase de la réponse coupe-bande")
+    plt.plot(m, angleReponse)
+    plt.ylabel("Phase (rad)")
+    plt.xlabel("Fréquence (Hz)")
+    plt.show()
 
     if verbose:
         plotFilter(filtreCB, "Filtre Coupe-Bande", m, y_dB=y_dB)
@@ -165,6 +173,7 @@ def plotFilter(filtre, filtreName, n, y_dB=False):
     else:
         plt.plot(n, np.abs(np.fft.fft(filtre)))
         plt.ylabel("Amplitude")
+    plt.xlabel("Fréquence (Hz)")
     plt.show()
 
 

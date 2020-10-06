@@ -57,6 +57,14 @@ def convFiltre(signal, filtre, basson=False, y_dB=False, verbose=False, imprimer
         plt.title("Signal conv. filtre passe-bas (freq)")
         plt.plot(np.abs(filteredSignalFrequentiel) / filteredSignalFrequentiel.size)
 
+        # Graphique de l'enveloppe
+        plt.figure(999)
+        plt.title("Enveloppe Guitare (signal conv. filtre passe-bas RIF)")
+        plt.plot(filteredSignalTemporel)
+        plt.xlabel("Échantillons (n)")
+        plt.ylabel("Amplitude")
+
+
     if imprimerFiltre:
         # Réponse du filtre
         plt.figure()
@@ -144,36 +152,36 @@ def bassonFunct():
     plt.title("Signal conv. * 2 filtre passe-bas (freq)")
     plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered2)) / signalFiltered2.size)
 
-    # Reponse filtres
-    nFreq = np.arange(0, signalFiltered.size, 1)
-    nFreq = nFreq * sample.Fe / signalFiltered.size
-    plt.figure()
-    plt.subplot(2, 1, 1)
-    plt.title("Amplitude signal conv. filtre coupe-bande")
-    plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered)) / signalFiltered.size)
-    plt.ylabel("Amplitude")
-    plt.axis([0, 1500, 0, 2000])
-    plt.subplot(2, 1, 2)
-    plt.title("Phase signal conv.  filtre coupe-bande")
-    plt.plot(nFreq, np.angle(signalFiltered))
-    plt.ylabel("Phase (rad)")
-    plt.xlabel("Fréquence (Hz)")
-    plt.axis([0, 1500, 0, 3])
-
-    nFreq = np.arange(0, signalFiltered2.size, 1)
-    nFreq = nFreq * sample.Fe / signalFiltered2.size
-    plt.figure()
-    plt.subplot(2, 1, 1)
-    plt.title("Amplitude signal conv. * 2 filtre coupe-bande")
-    plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered2)) / signalFiltered2.size)
-    plt.ylabel("Amplitude")
-    plt.axis([0, 1500, 0, 2000])
-    plt.subplot(2, 1, 2)
-    plt.title("Signal conv. * 2 filtre coupe-bande")
-    plt.plot(nFreq, np.angle(signalFiltered2))
-    plt.ylabel("Phase (rad)")
-    plt.xlabel("Fréquence (Hz)")
-    plt.axis([0, 1500, 0, 3])
+    # # Reponse filtres
+    # nFreq = np.arange(0, signalFiltered.size, 1)
+    # nFreq = nFreq * sample.Fe / signalFiltered.size
+    # plt.figure()
+    # plt.subplot(2, 1, 1)
+    # plt.title("Amplitude signal conv. filtre coupe-bande")
+    # plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered)) / signalFiltered.size)
+    # plt.ylabel("Amplitude")
+    # plt.axis([0, 1500, 0, 2000])
+    # plt.subplot(2, 1, 2)
+    # plt.title("Phase signal conv.  filtre coupe-bande")
+    # plt.plot(nFreq, np.angle(signalFiltered))
+    # plt.ylabel("Phase (rad)")
+    # plt.xlabel("Fréquence (Hz)")
+    # plt.axis([0, 1500, 0, 3])
+    #
+    # nFreq = np.arange(0, signalFiltered2.size, 1)
+    # nFreq = nFreq * sample.Fe / signalFiltered2.size
+    # plt.figure()
+    # plt.subplot(2, 1, 1)
+    # plt.title("Amplitude signal conv. * 2 filtre coupe-bande")
+    # plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered2)) / signalFiltered2.size)
+    # plt.ylabel("Amplitude")
+    # plt.axis([0, 1500, 0, 2000])
+    # plt.subplot(2, 1, 2)
+    # plt.title("Signal conv. * 2 filtre coupe-bande")
+    # plt.plot(nFreq, np.angle(signalFiltered2))
+    # plt.ylabel("Phase (rad)")
+    # plt.xlabel("Fréquence (Hz)")
+    # plt.axis([0, 1500, 0, 3])
 
     signalFilteredSample = Synthese.AudioSample(sample.Fe, signalFiltered2)
 
