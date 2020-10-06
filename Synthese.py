@@ -168,13 +168,15 @@ def sample_synthesis(f0, harmonic_amp, harmonic_phase, harmonic_freq, original_a
     return synth_signal, all_sins
 
 
-def apply_envelope(envelope, data, total_time, N, save_as="final_synth"):
-    dn = (total_time) / (N + 883)
-    t = np.arange(0, total_time, dn)
+def apply_envelope(envelope, padding, data, total_time, N, save_as="final_synth"):
+    dn = (total_time) / (N + padding)
+    t = np.arange(0, total_time-dn, dn)
 
-    sample_padded = np.append(data, [0] * 883)
+    padding = padding - 1
 
-    final_synth_signal = envelope * sample_padded / 883
+    sample_padded = np.append(data, [0] * padding)
+
+    final_synth_signal = envelope * sample_padded / padding
     plt.figure(7)
     plt.plot(t, final_synth_signal, 'r')
     plt.title(save_as)
@@ -184,18 +186,18 @@ def apply_envelope(envelope, data, total_time, N, save_as="final_synth"):
     return final_synth_signal
 
 
-def generate_synthesis(f0, envelope, harm_amp, harm_phase, harm_freq, sample, save_as="final_synth"):
+def generate_synthesis(f0, envelope, padding, harm_amp, harm_phase, harm_freq, sample, save_as="final_synth"):
     sin_sum, all_sins = sample_synthesis(f0, harm_amp, harm_phase, harm_freq, sample, 32)
-    final_signal = apply_envelope(envelope, sin_sum, sample.total_time, sample.N, save_as=save_as)
+    final_signal = apply_envelope(envelope, padding, sin_sum, sample.total_time, sample.N, save_as=save_as)
 
     return final_signal
 
-def create_symphony(envelope, harm_amp, harm_phase, harm_freq, sample_down):
-    la_d = generate_synthesis(466, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_LAd")
-    sol = generate_synthesis(392, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_SOL")
-    mi_b = generate_synthesis(311, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_MIb")
-    fa = generate_synthesis(349, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_FA")
-    re = generate_synthesis(294, envelope, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_RE")
+def create_symphony(envelope, padding, harm_amp, harm_phase, harm_freq, sample_down):
+    la_d = generate_synthesis(466, envelope, padding, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_LAd")
+    sol = generate_synthesis(392, envelope, padding, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_SOL")
+    mi_b = generate_synthesis(311, envelope, padding, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_MIb")
+    fa = generate_synthesis(349, envelope, padding, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_FA")
+    re = generate_synthesis(294, envelope, padding, harm_amp, harm_phase, harm_freq, sample_down, save_as="final_RE")
 
     lad_sample = AudioSample(44100, la_d)
     fourier_spectra(lad_sample, x_Freq=True, y_dB = True, title="Spectre amplitude LA# synthèse", figure_num=10)

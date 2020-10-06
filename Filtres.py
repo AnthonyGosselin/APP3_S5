@@ -26,7 +26,7 @@ def calcCoeffFIRPB(w, dB):
             bestp = pval
             bestH = H
 
-    return bestp, bestH, 1/bestp
+    return bestp-1, bestH, 1/bestp
 
 def filtreFIR(audioSample, fc=0, forcedHVal=0, forcedPVal=0, y_dB=False, xFreq=True, normalized=False, verbose=True):
 
@@ -103,7 +103,10 @@ def filtreCoupeBande(signalInput, y_dB=False, xFreq=True, normalized=False, verb
     w1 = f1 * w_norm
     w0 = f0 * w_norm
 
-    d = np.concatenate([[1], np.zeros(N-1)])
+    mDirac = int(f0 * N / Fe)
+
+    d = np.zeros(N)
+    d[750] = 1
     hlp = filtrePasseBas(signalInput, fc=w1, y_dB=y_dB, xFreq=False, normalized=True, verbose=verbose)
     filtreCB = d - 2 * hlp * np.cos(w0 * n)
 
