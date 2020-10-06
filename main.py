@@ -90,7 +90,7 @@ def guitFunct():
     Ppb, Hpb, hpb = Filtres.calcCoeffFIRPB(np.pi/1000, -3)
 
     filtrePB = Filtres.filtreFIR(sample, forcedHVal=hpb, forcedPVal=Ppb, y_dB=indB, xFreq=True, normalized=False, verbose=True)
-    envelope = convFiltre(sample, filtrePB, y_dB=False, verbose=False, imprimerFiltre=True)
+    envelope = convFiltre(sample, filtrePB, y_dB=False, verbose=True, imprimerFiltre=True)
 
     # Synthesis of notes
     Synthese.create_symphony(envelope, Ppb, harm_amp, harm_phase, harm_freq, sample_down)
@@ -133,18 +133,49 @@ def bassonFunct():
     plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered)) / signalFiltered.size)
 
     # Filtre * Filtre * signal
-    signalFiltered = np.convolve(signalFiltered, filtreCB)
+    signalFiltered2 = np.convolve(signalFiltered, filtreCB)
 
-    nFreq = np.arange(0, signalFiltered.size, 1)
-    nFreq = nFreq * sample.Fe / signalFiltered.size
+    nFreq = np.arange(0, signalFiltered2.size, 1)
+    nFreq = nFreq * sample.Fe / signalFiltered2.size
     plt.subplot(3, 2, 5)
     plt.title("Signal conv. * 2 filtre passe-bas")
-    plt.plot(signalFiltered)
+    plt.plot(signalFiltered2)
     plt.subplot(3, 2, 6)
     plt.title("Signal conv. * 2 filtre passe-bas (freq)")
-    plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered)) / signalFiltered.size)
+    plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered2)) / signalFiltered2.size)
 
-    signalFilteredSample = Synthese.AudioSample(sample.Fe, signalFiltered)
+    # Reponse filtres
+    nFreq = np.arange(0, signalFiltered.size, 1)
+    nFreq = nFreq * sample.Fe / signalFiltered.size
+    plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.title("Amplitude signal conv. filtre coupe-bande")
+    plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered)) / signalFiltered.size)
+    plt.ylabel("Amplitude")
+    plt.axis([0, 1500, 0, 2000])
+    plt.subplot(2, 1, 2)
+    plt.title("Phase signal conv.  filtre coupe-bande")
+    plt.plot(nFreq, np.angle(signalFiltered))
+    plt.ylabel("Phase (rad)")
+    plt.xlabel("Fréquence (Hz)")
+    plt.axis([0, 1500, 0, 3])
+
+    nFreq = np.arange(0, signalFiltered2.size, 1)
+    nFreq = nFreq * sample.Fe / signalFiltered2.size
+    plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.title("Amplitude signal conv. * 2 filtre coupe-bande")
+    plt.plot(nFreq, np.abs(np.fft.fft(signalFiltered2)) / signalFiltered2.size)
+    plt.ylabel("Amplitude")
+    plt.axis([0, 1500, 0, 2000])
+    plt.subplot(2, 1, 2)
+    plt.title("Signal conv. * 2 filtre coupe-bande")
+    plt.plot(nFreq, np.angle(signalFiltered2))
+    plt.ylabel("Phase (rad)")
+    plt.xlabel("Fréquence (Hz)")
+    plt.axis([0, 1500, 0, 3])
+
+    signalFilteredSample = Synthese.AudioSample(sample.Fe, signalFiltered2)
 
     sample_down = Synthese.down_sample(signalFilteredSample, plot=True, window=True)  # , start_time=0.17, end_time=0.18)
     amp, phase = Synthese.fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False,
@@ -155,15 +186,11 @@ def bassonFunct():
 
     Ppb, Hpb, hpb = Filtres.calcCoeffFIRPB(np.pi / 1000, -3)
     filtrePB = Filtres.filtreFIR(signalFilteredSample, forcedHVal=hpb, forcedPVal=Ppb, y_dB=False, xFreq=True, normalized=False,
-                                 verbose=True)
+                                 verbose=False)
 
     envelope = convFiltre(signalFilteredSample, filtrePB, y_dB=False, verbose=True, imprimerFiltre=True)
 
     basson_Note = Synthese.generate_synthesis(240, envelope, Ppb, harm_amp, harm_phase, harm_freq, sample_down, save_as="basson_Note")
-
-
-    signalFiltered = convFiltre(sample, filtreCB, y_dB=False, verbose=True, imprimerFiltre=False)
-
 
 
     signalAudioFiltered = Synthese.write_audio("bassonFilteredSynthed", sample.Fe, signalFiltered)

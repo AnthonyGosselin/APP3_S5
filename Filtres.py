@@ -103,12 +103,41 @@ def filtreCoupeBande(signalInput, y_dB=False, xFreq=True, normalized=False, verb
     w1 = f1 * w_norm
     w0 = f0 * w_norm
 
-    mDirac = int(f0 * N / Fe)
+    #mDirac = int(f0 * N / Fe)
 
     d = np.zeros(N)
-    d[750] = 1
+    d[0] = 1
     hlp = filtrePasseBas(signalInput, fc=w1, y_dB=y_dB, xFreq=False, normalized=True, verbose=verbose)
     filtreCB = d - 2 * hlp * np.cos(w0 * n)
+
+    # Generer sinus 1 kHz
+    Nx = signalInput.data.size
+
+    x = np.arange(Nx)
+    sinTest = np.sin((2 * np.pi * 1000 / Fe) * x)
+
+    plt.figure(99)
+    plt.title("Réponse à 1000 Hz")
+    plt.plot(x, sinTest, 'b', label = "Sinus 1 kHz")
+
+    newN = len(sinTest) + len(filtreCB) - 1
+
+    #nNorm = np.arange(0, 2 * np.pi * newN / Fe, 2 * np.pi / Fe)
+
+    # Pad signals with 0 for Nh + Nx - 1
+    paddedSignal = np.concatenate([sinTest, np.zeros(newN - len(sinTest))])
+    paddedFiltre = np.concatenate([filtreCB, np.zeros(newN - len(filtreCB))])
+
+    paddedFiltre = np.fft.fftshift(paddedFiltre)
+
+    sinReponse = np.convolve(paddedFiltre, paddedSignal)
+
+    plt.plot(sinReponse[int(paddedFiltre.size/2):-int(paddedFiltre.size/2)], 'g', label = "Sinus atténuée")
+    plt.legend(loc = 'upper right')
+    plt.ylabel("Amplitude")
+    plt.xlabel("Temps")
+
+    #filtreCB = np.fft.fftshift(filtreCB)
 
     if verbose:
         plotFilter(filtreCB, "Filtre Coupe-Bande", m, y_dB=y_dB)
