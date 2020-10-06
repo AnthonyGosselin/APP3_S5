@@ -111,6 +111,11 @@ def bassonFunct():
 
     filtreCB = Filtres.filtreCoupeBande2(sample, xFreq=True, normalized=False, verbose=True)
 
+    signalFiltered = np.convolve(sample.data, filtreCB)
+    signalFiltered = np.convolve(signalFiltered, filtreCB)
+
+    signalAudioFiltered = Synthese.write_audio("bassonFiltered", sample.Fe, signalFiltered)
+
     plt.show()
 
 #guitFunct()

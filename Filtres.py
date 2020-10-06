@@ -63,6 +63,8 @@ def filtrePasseBas2(audioSample, fc=0, y_dB=False, normalized=False, verbose=Tru
 
     if normalized:
         n = n * w_norm
+    #elif xFreq:
+    #    n = n * Fe / N
 
     FIRpb = np.zeros(N)
 
@@ -102,8 +104,8 @@ def filtrePasseBas2(audioSample, fc=0, y_dB=False, normalized=False, verbose=Tru
 
 def filtreCoupeBande2(signalInput, xFreq=True, normalized=False, verbose=False):
     N = 1024
-    w_norm = 2 * np.pi / N
     Fe = signalInput.Fe
+    w_norm = 2 * np.pi / Fe
 
     n = np.arange(0, N, 1)
     #n = np.arange(0, w_norm * N, w_norm)
@@ -143,6 +145,24 @@ N2, H2, h2 = calcCoeff2(np.pi/1000, -3)
 
 print("N = " + str(N) + ", H = " + str(H) + ", pour h = " + str(h))
 print("N = " + str(N2) + ", H = " + str(H2) + ", pour h = " + str(h2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xFreq=True, normalized=False, verbose=True):
 
