@@ -214,8 +214,8 @@ def create_symphony(envelope, harm_amp, harm_phase, sample_down):
     fa = generate_synthesis(349, envelope, harm_amp, harm_phase, sample_down, save_as="final_FA")
     re = generate_synthesis(294, envelope, harm_amp, harm_phase, sample_down, save_as="final_RE")
 
-    st = 0
-    end = 30000
+    st = 5000
+    end = 15000
     sustain = 40000
     s = sol.tolist()[st:end]
     m = mi_b.tolist()[st:end + sustain]
