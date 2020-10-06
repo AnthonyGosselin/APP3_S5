@@ -94,7 +94,6 @@ def filtrePasseBas(audioSample, fc=0, forcedHVal=0, forcedNVal=0, y_dB=False, xF
         else:
             plt.plot(n, np.abs(np.fft.fft(FIRpb)))
             plt.ylabel("Amplitude")
-        plt.show()
 
     return FIRpb
 

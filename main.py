@@ -69,7 +69,6 @@ def guitFunct():
     amp, phase, inv_fft_signal = Synthese.fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False, showPhase=False)#, start_m=13500, end_m=13600)
 
     harm_amp, harm_phase = Synthese.get_harmonic_params(466, 32, amp, phase, sample_down, printResults=False)
-    Synthese.sample_synthesis(466, harm_amp, harm_phase, sample_down)
 
     # ----
 
@@ -80,7 +79,8 @@ def guitFunct():
     filtrePB = Filtres.filtrePasseBas(sample, forcedHVal=hpb, forcedNVal=Npb, y_dB=indB, normalized=True, verbose=True)
     envelope = convFiltre(sample, filtrePB, y_dB=indB, verbose=True)
 
-    Synthese.apply_envelope(envelope, inv_fft_signal, sample_down.total_time, sample_down.N)
+    # Synthesis of notes
+    Synthese.create_symphony(envelope, harm_amp, harm_phase, sample_down)
 
     plt.show()
 
