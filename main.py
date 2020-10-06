@@ -150,8 +150,8 @@ def bassonFunct():
     amp, phase = Synthese.fourier_spectra(sample_down, x_normalized=False, x_Freq=True, y_dB=False,
                                  showPhase=False)  # , start_m=0, end_m=1000)
 
-    harm_amp, harm_phase, harm_freq = Synthese.get_harmonic_params(480, 32, amp, phase, sample_down, printResults=False)
-    Synthese.sample_synthesis(480, harm_amp, harm_phase, harm_freq, sample)
+    harm_amp, harm_phase, harm_freq = Synthese.get_harmonic_params(240, 32, amp, phase, sample_down, printResults=False)
+    Synthese.sample_synthesis(240, harm_amp, harm_phase, harm_freq, sample)
 
     Ppb, Hpb, hpb = Filtres.calcCoeffFIRPB(np.pi / 1000, -3)
     filtrePB = Filtres.filtreFIR(signalFilteredSample, forcedHVal=hpb, forcedPVal=Ppb, y_dB=False, xFreq=True, normalized=False,
@@ -159,7 +159,7 @@ def bassonFunct():
 
     envelope = convFiltre(signalFilteredSample, filtrePB, y_dB=False, verbose=True, imprimerFiltre=True)
 
-    basson_Note = Synthese.generate_synthesis(480, envelope, Ppb, harm_amp, harm_phase, harm_freq, sample_down, save_as="basson_Note")
+    basson_Note = Synthese.generate_synthesis(240, envelope, Ppb, harm_amp, harm_phase, harm_freq, sample_down, save_as="basson_Note")
 
 
     signalFiltered = convFiltre(sample, filtreCB, y_dB=False, verbose=True, imprimerFiltre=False)
