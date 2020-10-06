@@ -115,6 +115,7 @@ def bassonFunct():
 
     # Filtre * signal
     # filteredSignal = np.abs(redressedSignal * FIRpb)
+    plt.figure()
     plt.subplot(2, 1, 1)
     plt.title("Signal conv. filtre passe-bas")
     plt.plot(signalFiltered)

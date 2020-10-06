@@ -52,8 +52,8 @@ def calcCoeff2(w, dB):
 
 def filtrePasseBas2(audioSample, fc=0, y_dB=False, normalized=False, verbose=True):
     N = 1024
-    w_norm = 2 * np.pi / N
     Fe = audioSample.Fe
+    w_norm = 2 * np.pi / Fe
 
     #fc = w_norm * fc
     mc = fc * N / Fe
