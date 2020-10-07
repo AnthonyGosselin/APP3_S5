@@ -73,9 +73,9 @@ def convFiltre(signal, filtre, basson=False, y_dB=False, verbose=False, imprimer
         plt.plot(paddedFiltre)
         plt.subplot(2, 1, 2)
         plt.title("Filtre RIF Passe-Bas (fréquentiel)")
-        plt.plot(nNorm[0:int(nNorm.size/2)], 20 * np.log10(np.abs(filterFFT[0:int(filterFFT.size/2)])))
+        plt.plot(nNorm[0:int(nNorm.size/2)], 20 * np.log10(np.abs(filterFFT[0:int(filterFFT.size/2)])/filterFFT.size))
         plt.ylabel("Amplitude (dB)")
-        plt.xlabel("Freq. [radians / échantillon]")
+        plt.xlabel("Frequence normalisée [radians / échantillon]")
 
         # plt.show(np.abs(filteredSignalFrequentiel))
 
@@ -90,15 +90,15 @@ def guitFunct():
     sample_down = Synthese.down_sample(sample, plot=True, window=False)  # , start_time=0.17, end_time=0.18)
     amp, phase = Synthese.fourier_spectra(sample_down, x_normalized=True, x_Freq=False, y_dB=False, showPhase=False)#, start_m=13500, end_m=13600)
 
-    harm_amp, harm_phase, harm_freq = Synthese.get_harmonic_params(466, 32, amp, phase, sample_down, printResults=True)
+    harm_amp, harm_phase, harm_freq = Synthese.get_harmonic_params(466, 32, amp, phase, sample_down, printResults=False)
 
     # ----
 
-    indB = False
+    indB = True
     Ppb, Hpb, hpb = Filtres.calcCoeffFIRPB(np.pi/1000, -3)
 
     filtrePB = Filtres.filtreFIR(sample, forcedHVal=hpb, forcedPVal=Ppb, y_dB=indB, xFreq=True, normalized=False, verbose=True)
-    envelope = convFiltre(sample, filtrePB, y_dB=False, verbose=True, imprimerFiltre=True)
+    envelope = convFiltre(sample_down, filtrePB, y_dB=False, verbose=True, imprimerFiltre=True)
 
     # Synthesis of notes
     Synthese.create_symphony(envelope, Ppb, harm_amp, harm_phase, harm_freq, sample_down)
@@ -205,5 +205,5 @@ def bassonFunct():
 
     plt.show()
 
-#guitFunct()
-bassonFunct()
+guitFunct()
+#bassonFunct()

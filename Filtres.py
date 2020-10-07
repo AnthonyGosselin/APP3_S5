@@ -26,7 +26,7 @@ def calcCoeffFIRPB(w, dB):
             bestp = pval
             bestH = H
 
-    return bestp-1, bestH, 1/bestp
+    return bestp-1, bestH, 1/(bestp-1)
 
 def filtreFIR(audioSample, fc=0, forcedHVal=0, forcedPVal=0, y_dB=False, xFreq=True, normalized=False, verbose=True):
 
@@ -47,7 +47,7 @@ def filtreFIR(audioSample, fc=0, forcedHVal=0, forcedPVal=0, y_dB=False, xFreq=T
         index += 1
 
     if verbose:
-        plotFilter(FIRpb, "Filtre RIF Passe-Bas", n, y_dB=y_dB)
+        plotFilter(FIRpb, "Filtre RIF Passe-Bas", n, y_dB=False)
 
     return FIRpb
 
